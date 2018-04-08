@@ -1,0 +1,91 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+plot(cars)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+```{r}
+options(warn = -1)
+library(ISLR)
+summary(Weekly)
+```
+```{r}
+plot(Weekly)
+```
+
+checking corealationship between variables. Excluding `Direction` which is qualitative.
+It appears only `Year` and `Volume` have relationship.
+
+```{r}
+
+cor(Weekly[, -9])
+```
+```{r}
+
+attach(Weekly)
+glm_fit = glm(Direction ~ Lag1 + Lag2 + Lag3 + Lag4 + Lag5 + Volume, data = Weekly, family = binomial)
+summary(glm_fit)
+```
+
+It appears only `Lag2` have some statistical significance.
+
+Now using predict function we can get the probablities. Then we use threshold as 0.5 to predict `Up` and `Down`
+```{r}
+
+glm_probs = predict(glm_fit, type = "response")
+glm_pred = rep("Down", length(glm_probs))
+glm_pred[glm_probs > 0.5] = "Up"
+table(glm_pred, Direction)
+```
+
+Percentage of currect predictions: (54+557)/(54+557+48+430) = 56.1%.
+Weeks the market goes up the logistic regression is right most of the time, 557/(557+48) = 92.1%.
+Weeks the market goes up the logistic regression is wrong most of the time 54/(430+54) = 11.2%.
+
+Now we'll fit the trainning data period from 1990 to 2008 using `Lag2` only.
+```{r}
+
+train = (Year < 2009)
+weekly_testing = Weekly[!train,]
+direction_testing = Direction[!train]
+glm_fit = glm(Direction ~ Lag2, data = Weekly, family = binomial, subset = train)
+glm_probs = predict(glm_fit, weekly_testing, type = "response")
+glm_pred = rep("Down", length(glm_probs))
+glm_pred[glm_probs > 0.5] = "Up"
+table(glm_pred, direction_testing)
+
+```
+```{r}
+mean(glm_pred == direction_testing)
+```
+
+Fitting LDA model.
+```{r}
+
+library(MASS)
+lda_fit = lda(Direction ~ Lag2, data = Weekly, subset = train)
+lda_pred = predict(lda_fit, weekly_testing)
+table(lda_pred$class, direction_testing)
+```
+```{r}
+
+mean(lda_pred$class == direction_testing)
+```
+
