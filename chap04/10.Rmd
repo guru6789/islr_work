@@ -73,3 +73,40 @@ table(lda_pred$class, direction_testing)
 mean(lda_pred$class == direction_testing)
 ```
 
+Fitting QDA model
+
+```{r}
+
+qda_fit = qda(Direction ~ Lag2, data = Weekly, subset = train)
+qda_class = predict(qda_fit, weekly_testing)$class
+table(qda_class, direction_testing)
+
+```
+```{r}
+
+mean(qda_class == direction_testing)
+
+```
+
+QDA correctness is 58.7%
+
+Now, KNN
+
+```{r}
+library(class)
+training_data = as.matrix(Lag2[train])
+testing_data = as.matrix(Lag2[!train])
+direction_training = Direction[train]
+
+set.seed(1)
+knn_pred = knn(training_data, testing_data, direction_training, k = 1)
+table(knn_pred, direction_testing)
+
+```
+```{r}
+
+mean(knn_pred == direction_testing)
+
+```
+
+Logistic regression and LDA provides similar error rates.

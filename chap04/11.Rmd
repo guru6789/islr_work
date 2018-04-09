@@ -1,0 +1,110 @@
+---
+title: "LDA,    QDA, Logistic regression and KNN on Auto dataset"
+output: 
+  md_document:
+    variant: markdown_github
+---
+
+
+```{r}
+options(warn = -1)
+library(ISLR)
+summary(Auto)
+
+```
+```{r}
+
+attach(Auto)
+mpg01 = rep(0, length(mpg))
+mpg01[ mpg > median(mpg)] = 1
+Auto = data.frame(Auto, mpg01)
+
+```
+
+```{r}
+cor(Auto[, -9])
+```
+
+```{r}
+pairs(Auto)
+
+```
+
+Anti-correlated with cylinders, weight, displacement, horsepower.
+
+Split data into training and testing.
+```{r}
+
+train = (year %% 2 == 0) #splitting even years
+test = !train
+auto_training = Auto[train, ]
+auto_testing = Auto[test, ]
+mpg01_test = mpg01[test]
+
+```
+
+LDA
+using variables most associated with `mpg01`. Using corelation matrix.
+
+```{r}
+
+library(MASS)
+lda_fit = lda(mpg01 ~ cylinders + weight + displacement + horsepower, data = auto_training)
+lda_pred = predict(lda_fit, auto_testing)
+mean(lda_pred$class != mpg01_test)
+
+```
+
+LDA gives error rate of 12.7%
+
+Now, QDA
+```{r}
+
+qda_fit = qda(mpg01 ~ cylinders + weight + displacement + horsepower, data = auto_training)
+qda_pred = predict(qda_fit, auto_testing)
+mean(qda_pred$class != mpg01_test)
+```
+
+QDA gives error rate of 13.1%
+
+Now, Logistic regression
+
+```{r}
+glm_fit = glm(mpg01 ~ cylinders + weight + displacement + horsepower, data = auto_training, family = binomial)
+glm_probs = predict(glm_fit, auto_testing)
+glm_pred = rep(0, length(glm_probs))
+glm_pred[glm_probs > 0.5] = 1
+mean(glm_pred != mpg01_test)
+```
+
+Logistic regression gives error rate of 12.6%
+
+KNN
+```{r}
+
+library(class)
+training_data = cbind(cylinders, weight, displacement, horsepower)[train,]
+testing_data = cbind(cylinders, weight, displacement, horsepower)[test,]
+mpg01_train = mpg01[train]
+set.seed(1)
+
+knn_pred = knn(train = training_data, test = testing_data, cl = mpg01_train, k = 1)
+mean(knn_pred != mpg01_test)
+```
+```{r}
+
+knn_pred = knn(train = training_data, test = testing_data, cl = mpg01_train, k = 10)
+mean(knn_pred != mpg01_test)
+```
+```{r}
+
+knn_pred = knn(train = training_data, test = testing_data, cl = mpg01_train, k = 100)
+mean(knn_pred != mpg01_test)
+```
+
+K value     Error rate
+  1           15.3%
+ 10          16.4%
+ 100         14.2%
+
+At k = 100 we get minimal error rate.
