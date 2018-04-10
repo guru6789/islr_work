@@ -1,0 +1,147 @@
+---
+title: "R Notebook"
+output: 
+  md_document:
+    variant: markdown_github
+---
+
+```{r}
+options(warn = -1)
+library(MASS)
+summary(Boston)
+```
+
+```{r}
+attach(Boston)
+crim01 = ifelse(crim > median(crim), 1, 0)
+Boston = data.frame(Boston, crim01)
+
+```
+
+```{r}
+pairs(Boston)
+```
+
+Finding the corelation between variables.
+
+```{r}
+sort(cor(Boston)[1,])
+```
+It appears `tax` and `rad` have highest corelation with `crim`
+
+dividing data for training and testing.
+```{r}
+
+set.seed(1)
+trainid = sample(1:nrow(Boston), nrow(Boston) * 0.7, replace = F)  #70% train, 30% test
+training_data = Boston[trainid,]
+testing_data = Boston[-trainid,]
+crim01_test = testing_data$crim01
+```
+
+Logistic regression model
+
+```{r}
+glm_fit = glm(crim01 ~ age + dis + lstat + medv, data = training_data, family = binomial)
+glm_probs = predict(glm_fit, testing_data, type = "response")
+glm_pred = ifelse(glm_probs > 0.5, 1, 0)
+mean(crim01_test != glm_pred)    #error rate
+```
+```{r}
+
+glm_fit = glm(crim01 ~ tax + rad, data = training_data, family = binomial)
+glm_probs = predict(glm_fit, testing_data, type = "response")
+glm_pred = ifelse(glm_probs > 0.5, 1, 0)
+mean(crim01_test != glm_pred)    #error rate
+```
+
+LDA models
+
+```{r}
+lda_fit = lda(crim01 ~ age + dis + lstat + medv, data = training_data)
+lda_pred = predict(lda_fit, testing_data)
+mean(crim01_test != lda_pred$class)   #error rate
+```
+```{r}
+
+lda_fit = lda(crim01 ~ tax + rad, data = training_data)
+lda_pred = predict(lda_fit, testing_data)
+mean(crim01_test != lda_pred$class)   #error rate
+
+```
+
+Now, KNN models
+```{r}
+library(class)
+set.seed(1)
+train_knn0 = cbind(training_data$age, training_data$dis, training_data$lstat, training_data$medv)
+test_knn0 = cbind(testing_data$age, testing_data$dis, testing_data$lstat, testing_data$medv)
+train_crim01 = training_data$crim01
+train_knn1 = cbind(training_data$tax, training_data$rad)
+test_knn1 = cbind(testing_data$tax, testing_data$rad)
+
+knn_pred0 = knn(train = train_knn0, test = test_knn0, cl = train_crim01, k = 1)
+mean(knn_pred0 != crim01_test)
+```
+```{r}
+
+knn_pred0 = knn(train = train_knn0, test = test_knn0, cl = train_crim01, k = 5)
+mean(knn_pred0 != crim01_test)
+```
+```{r}
+
+knn_pred0 = knn(train = train_knn0, test = test_knn0, cl = train_crim01, k = 10)
+mean(knn_pred0 != crim01_test)
+```
+```{r}
+
+knn_pred0 = knn(train = train_knn0, test = test_knn0, cl = train_crim01, k = 20)
+mean(knn_pred0 != crim01_test)
+```
+```{r}
+knn_pred0 = knn(train = train_knn0, test = test_knn0, cl = train_crim01, k = 50)
+mean(knn_pred0 != crim01_test)
+```
+```{r}
+
+knn_pred0 = knn(train = train_knn0, test = test_knn0, cl = train_crim01, k = 100)
+mean(knn_pred0 != crim01_test)
+```
+```{r}
+
+knn_pred0 = knn(train = train_knn0, test = test_knn0, cl = train_crim01, k = 200)
+mean(knn_pred0 != crim01_test)
+```
+```{r}
+knn_pred1 = knn(train_knn1, test_knn1, train_crim01, k = 1)
+mean(knn_pred1 != crim01_test)
+```
+```{r}
+knn_pred1 = knn(train_knn1, test_knn1, train_crim01, k = 5)
+mean(knn_pred1 != crim01_test)
+```
+```{r}
+
+knn_pred1 = knn(train_knn1, test_knn1, train_crim01, k = 10)
+mean(knn_pred1 != crim01_test)
+```
+```{r}
+knn_pred1 = knn(train_knn1, test_knn1, train_crim01, k = 20)
+mean(knn_pred1 != crim01_test)
+```
+```{r}
+
+knn_pred1 = knn(train_knn1, test_knn1, train_crim01, k = 50)
+mean(knn_pred1 != crim01_test)
+```
+```{r}
+
+knn_pred1 = knn(train_knn1, test_knn1, train_crim01, k = 100)
+mean(knn_pred1 != crim01_test)
+```
+```{r}
+
+knn_pred1 = knn(train_knn1, test_knn1, train_crim01, k = 200)
+mean(knn_pred1 != crim01_test)
+```
+
