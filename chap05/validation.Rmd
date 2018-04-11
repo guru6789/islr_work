@@ -1,0 +1,102 @@
+---
+title: "Different validation approaches to calculate MSE"
+output: 
+  md_document:
+    variant: markdown_github
+
+---
+
+Exploring the use of the validation set approach in order to estimate the test error rates that result from fitting various linear models on the `Auto`
+data set.
+
+split the set of observations into two halves, by selecting a random subset of 196 observations out of the original 392 observations.
+
+```{r}
+options(warn = -1)
+library(ISLR)
+set.seed(1)
+train = sample(392, 196)
+
+```
+
+```{r}
+
+attach(Auto)
+lm.fit = lm(mpg ~ horsepower, data = Auto, subset = train)
+mean((mpg - predict(lm.fit, Auto))[-train]^2)      #MSE for linear regression fit
+```
+
+Now we'll use polynomials to test error for quadratic and cubic functions.
+
+```{r}
+
+lm.fit2 = lm(mpg ~ poly(horsepower, 2), data = Auto, subset = train)
+mean((mpg - predict(lm.fit2, Auto))[-train]^2)      #MSE for linear regression fit
+
+```
+```{r}
+
+lm.fit3 = lm(mpg ~ poly(horsepower, 3), data = Auto, subset = train)
+mean((mpg - predict(lm.fit3, Auto))[-train]^2)      #MSE for linear regression fit
+```
+
+If we choose a different training set instead, then we will obtain somewhat different errors on the validation set.
+
+```{r}
+set.seed(2)
+train = sample(392, 196)
+
+lm.fit = lm(mpg ~ horsepower, data = Auto, subset = train)
+mean((mpg - predict(lm.fit, Auto))[-train]^2)
+
+lm.fit2 = lm(mpg ~ poly(horsepower, 2), data = Auto, subset = train)
+mean((mpg - predict(lm.fit2, Auto))[-train]^2)
+
+lm.fit3 = lm(mpg ~ poly(horsepower, 3), data = Auto, subset = train)
+mean((mpg - predict(lm.fit3, Auto))[-train]^2)
+```
+
+These results are consistent with our previous findings: a model that predicts `mpg` using a quadratic function of `horsepower` performs better than
+a model that involves only a linear function of horsepower.
+
+###############################################################
+Leave-One-Out Cross-Validation(LOOCV)
+###############################################################
+```{r}
+library(boot)
+glm.fit = glm(mpg ~ horsepower, data = Auto)      #if `family` is not supplied them glm will do linear regression.
+cv.err = cv.glm(Auto, glm.fit)
+cv.err$delta       #cross validation results.
+
+```
+
+Repeat this procedure for increasingly complex polynomial fits.
+
+```{r}
+
+cv.err = NULL
+for(i in 1:10){
+  glm.fit = glm(mpg ~ poly(horsepower, i), data = Auto)
+  cv.err[i] = cv.glm(Auto, glm.fit)$delta[1]
+}
+cv.err
+
+```
+
+##############################################################
+k-Fold Cross-Validation
+##############################################################
+```{r}
+set.seed(17)
+kfv.err = NULL
+for(i in 1:10){
+  glm.fit = glm(mpg ~ poly(horsepower, i), data = Auto)
+  kfv.err[i] = cv.glm(Auto, glm.fit, K = 10)$delta[1]
+}
+kfv.err
+
+```
+```{r}
+detach(Auto)
+```
+
