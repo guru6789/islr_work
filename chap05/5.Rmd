@@ -1,0 +1,64 @@
+---
+title: "R Notebook"
+output: 
+  md_document:
+    variant: markdown_github
+---
+
+```{r}
+options(warn = -1)
+library(ISLR)
+summary(Default)
+```
+
+Fit logistic regression model to predict `default` using `income` and `balance`
+
+```{r}
+attach(Default)
+set.seed(1)
+glm.fit = glm(default ~ income + balance, data = Default, family = binomial)
+```
+
+```{r}
+validationSet = function(){
+  train = sample(dim(Default)[1], dim(Default)[1]/2)     #take 50% training sample
+  glm.fit = glm(default ~ income + balance, data = Default, family = binomial, subset = train)
+  glm_probs = predict(glm.fit, Default[-train,], type = "response")
+  glm_pred = ifelse(glm_probs > 0.5, "Yes", "No")
+  
+  return(mean(glm_pred != Default[-train,]$default))
+}
+
+validationSet()
+```
+
+2.68% error rate on validation set approach.
+
+```{r}
+validationSet()
+```
+```{r}
+validationSet()
+```
+```{r}
+validationSet()
+```
+
+Error rate seems to average around 2.6%
+
+```{r}
+stud = ifelse(student == "Yes", 1, 0)
+default_df = data.frame(Default, stud)
+train = sample(dim(default_df)[1], dim(default_df)[1]/2)
+glm.fit = glm(default ~ income + balance + stud, data = default_df, family = binomial, subset = train)
+glm_probs = predict(glm.fit, default_df[-train,])
+glm_pred = ifelse(glm_probs > 0.5, "Yes", "No")
+mean(glm_pred != default_df[-train,]$default)
+```
+
+Using student variabe doesnt seem to reduce error rate.
+
+```{r}
+detach(Default)
+```
+

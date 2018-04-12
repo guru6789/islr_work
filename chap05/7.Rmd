@@ -1,0 +1,65 @@
+---
+title: "R Notebook"
+output: 
+  md_document:
+    variant: markdown_github
+---
+
+```{r}
+options(warn = -1)
+library(ISLR)
+summary(Weekly)
+```
+```{r}
+attach(Weekly)
+set.seed(1)
+
+```
+
+Fit a logistic regression model that predicts `Direction` using `Lag1` and `Lag2`
+
+```{r}
+glm.fit = glm(Direction ~ Lag1 + Lag2, data = Weekly, family = binomial)
+summary(glm.fit)
+```
+
+Fit a logistic regression model that predicts `Direction` using `Lag1` and `Lag2` using all but the first observation.
+
+```{r}
+glm.fit = glm(Direction ~ Lag1 + Lag2, data = Weekly[-1,], family = binomial)
+summary(glm.fit)
+```
+
+Use the above model to predict the direction of the first observation.
+
+```{r}
+glm_probs = predict(glm.fit, Weekly[1,], type = "response")
+ifelse(glm_probs > 0.5, "Up", "Down")
+```
+
+Prediction was UP, true Direction was DOWN.
+
+`cv.glm()` function can be used to compute LOOCV error rate but here we're gonna use `glm()` and `predict.glm()`
+functions to do the same thing.
+
+```{r}
+
+err_count = NULL
+for(i in 1:dim(Weekly)[1]){
+  glm.fit = glm(Direction ~ Lag1 + Lag2, data = Weekly[-i, ], family = binomial)
+  is_up = predict.glm(glm.fit, Weekly[i, ], type = "response") > 0.5
+  is_true_up = Weekly[i, ]$Direction == "Up"
+  err_count[i] = ifelse(is_up != is_true_up, 1, 0)
+}
+sum(err_count)
+```
+```{r}
+mean(err_count)
+```
+
+LOOCV estimates a test error rate of 45%.
+
+```{r}
+detach(Weekly)
+```
+

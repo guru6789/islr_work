@@ -1,0 +1,39 @@
+---
+title: "R Notebook"
+output: 
+  md_document:
+    variant: markdown_github
+---
+
+```{r}
+library(ISLR)
+library(boot)
+summary(Default)
+```
+```{r}
+attach(Default)
+set.seed(1)
+
+glm.fit = glm(default ~ income + balance, data = Default, family = binomial)
+coef(summary(glm.fit))
+```
+```{r}
+boot.fn = function(inputData, index){
+  return(coef(glm(default ~ income + balance, data = inputData, family = binomial, subset = index)))
+}
+```
+
+bootsrapping to find std.err associated with coefficients.
+
+```{r}
+
+boot(Default, boot.fn, 1000)
+```
+
+Similar std error with both methods.
+
+```{r}
+detach(Default)
+```
+
+
