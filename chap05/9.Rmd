@@ -1,0 +1,78 @@
+---
+title: "R Notebook"
+output: 
+  md_document:
+    variant: markdown_github
+---
+
+```{r}
+library(MASS)
+summary(Boston)
+```
+
+a. an estimate for the population mean of `medv`
+```{r}
+mu_hat = mean(Boston$medv)
+mu_hat
+```
+
+b. estimate of the standard error of `mu_hat`
+```{r}
+mu_err = sd(Boston$medv)/ sqrt(length(Boston$medv))
+mu_err
+```
+
+c. Now estimate the standard error of `mu_hat` using the bootstrap.
+```{r}
+library(boot)
+boot.fn = function(data, index) {
+  return(mean(data[index]))
+}
+btstrap = boot(Boston$medv, boot.fn, 1000)
+btstrap
+```
+
+Similar to answer from (b) up to two significant digits. (0.4020 vs 0.4089)
+
+95 % confidence interval for the mean of `medv`
+
+`[ˆμ − 2SE(ˆμ), μˆ + 2SE(ˆμ)]`
+```{r}
+conf_int = c(mu_hat - 2*0.4020, mu_hat + 2*0.4020)
+conf_int
+
+```
+
+Compare it to the results obtained using `t.test(Boston$medv)`
+```{r}
+t.test(Boston$medv)
+```
+
+Boostrap estimate equal to t-test upto two decimal places.
+
+```{r}
+medv.med = median(Boston$medv)
+medv.med
+```
+
+We now would like to estimate the standard error of `ˆμmed`. Unfortunately, there is no simple formula for computing the standard error of the median. Instead, estimate the standard error of the median using the bootstrap.
+```{r}
+boot.fn = function(data, index) return(median(data[index]))
+boot(Boston$medv, boot.fn, 1000)
+```
+
+Median of 21.2 with SE of 0.380. Small standard error relative to median value.
+
+an estimate for the tenth percentile of `medv` in Boston suburbs
+```{r}
+medv_tenth = quantile(Boston$medv, c(0.1))
+medv_tenth
+```
+
+Use the bootstrap to estimate the standard error for above.
+```{r}
+boot.fn = function(data, index) return(quantile(data[index], c(0.1)))
+boot(Boston$medv, boot.fn, 1000)
+```
+
+Tenth-percentile of 12.75 with SE of 0.511. Small standard error relative to tenth-percentile value.

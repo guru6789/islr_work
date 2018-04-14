@@ -1,0 +1,84 @@
+---
+title: "R Notebook"
+output: 
+  md_document:
+    variant: markdown_github
+---
+
+Performing cross-validation on a simulated data set.
+
+```{r}
+set.seed(1)
+y = rnorm(100)
+x = rnorm(100)
+y = x-2 * x^2 + rnorm(100)
+```
+
+n = 100 p = 2
+
+Y = (X-2)(X^2) + epsilon
+```{r}
+plot(x, y)
+```
+
+Quadratic plot. $X$ from about -2 to 2. $Y$ from about -8 to 2
+
+```{r}
+set.seed(1)
+library(boot)
+data = data.frame(x, y)
+
+#i
+glm.fit = glm(y ~ x)
+cv.glm(data, glm.fit)$delta
+```
+
+```{r}
+#ii
+glm.fit = glm(y ~ poly(x, 2))
+cv.glm(data, glm.fit)$delta
+```
+```{r}
+#iii
+glm.fit = glm(y ~ poly(x, 3))
+cv.glm(data, glm.fit)$delta
+
+```
+```{r}
+#iv
+glm.fit = glm(y ~ poly(x, 4))
+cv.glm(data, glm.fit)$delta
+
+```
+
+Repeating same with different seed value.
+
+```{r}
+set.seed(100)
+glm.fit = glm(y ~ x)
+cv.glm(data, glm.fit)$delta
+```
+```{r}
+glm.fit = glm(y ~ poly(x, 2))
+cv.glm(data, glm.fit)$delta
+```
+
+```{r}
+glm.fit = glm(y ~ poly(x, 3))
+cv.glm(data, glm.fit)$delta
+```
+```{r}
+glm.fit = glm(y ~ poly(x, 4))
+cv.glm(data, glm.fit)$delta
+```
+
+Exact same, because LOOCV will be the same since it evaluates n folds of a single observation.
+
+The quadratic polynomial had the lowest LOOCV test error rate. This was expected because it matches the true form of $Y$
+
+```{r}
+summary(glm.fit)
+```
+
+p-values show statistical significance of linear and quadratic terms, which agrees with the CV results.
+
