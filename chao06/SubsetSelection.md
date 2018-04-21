@@ -343,3 +343,113 @@ coef(regfit.bwd, 7)
     ##  105.6487488   -1.9762838    6.7574914    6.0558691    1.1293095 
     ##       CWalks    DivisionW      PutOuts 
     ##   -0.7163346 -116.1692169    0.3028847
+
+################################################################################################################## 
+
+choosing models using validation and cross-validation set approach.
+
+################################################################################################################## 
+
+first divide dataset into trainig and testing
+
+``` r
+set.seed(1)
+train = sample(c(TRUE, FALSE), nrow(Hitters), rep = TRUE)
+test = !train
+```
+
+then apply `regsubsets` using only training data.
+
+``` r
+regfit.best = regsubsets(Salary ~ ., data = Hitters[train,], nvmax = 19)
+coef(regfit.best, 10)
+```
+
+    ## (Intercept)       AtBat        Hits       Walks      CAtBat       CHits 
+    ## -80.2751499  -1.4683816   7.1625314   3.6430345  -0.1855698   1.1053238 
+    ##      CHmRun      CWalks     LeagueN   DivisionW     PutOuts 
+    ##   1.3844863  -0.7483170  84.5576103 -53.0289658   0.2381662
+
+We now compute the validation set error for the best model of each model size. We ﬁrst make a model matrix from the test data.
+
+``` r
+test.mat = model.matrix(Salary ~., data = Hitters[test,])
+```
+
+Now we run a loop, and for each size i, we extract the coeﬃcients from `regfit.best` for the best model of that size, multiply them into the appropriate columns of the test model matrix to form the predictions, and compute the test MSE.
+
+``` r
+predict.regsubsets = function(object, newData, id, ...){
+  form = as.formula(object$call[[2]])
+  mat = model.matrix(form, newData)
+  coefi = coef(object, id = id)
+  xvars = names(coefi)
+  mat[,xvars]%*%coefi
+}
+```
+
+``` r
+regfit.best = regsubsets(Salary ~., data = Hitters, nvmax = 19)
+coef(regfit.best, 10)
+```
+
+    ##  (Intercept)        AtBat         Hits        Walks       CAtBat 
+    ##  162.5354420   -2.1686501    6.9180175    5.7732246   -0.1300798 
+    ##        CRuns         CRBI       CWalks    DivisionW      PutOuts 
+    ##    1.4082490    0.7743122   -0.8308264 -112.3800575    0.2973726 
+    ##      Assists 
+    ##    0.2831680
+
+Using full dataset provide diffrent coefficients for 10 variable model than using just training dataset.We now try to choose among the models of diﬀerent sizes using crossvalidation. First, we create a vector that allocates each observation to one of k = 10 folds, and we create a matrix in which we will store the results.
+
+``` r
+k = 10
+set.seed(1)
+folds = sample(1:k, nrow(Hitters), replace = T)
+cv.errors = matrix(NA, k, 19, dimnames = list(NULL, paste(1:19)))
+```
+
+Now we write a for loop that performs cross-validation. In the jth fold, the elements of folds that equal j are in the test set, and the remainder are in the training set.
+
+``` r
+for(j in 1:k){
+  best.fit = regsubsets(Salary ~ ., data = Hitters[folds != j,], nvmax = 19)
+  for(i in 1:19){
+    pred = predict(best.fit, Hitters[folds == j,], id = i)
+    cv.errors[j, i] = mean((Hitters$Salary[folds == j] - pred)^2)
+  }
+}
+```
+
+This has given us a 10×19 matrix, of which the (i,j)th element corresponds to the test MSE for the ith cross-validation fold for the best j-variable model.We use the `apply()` function to average over the columns of this matrix in order to obtain a vector for which the jth element is the crossvalidation error for the j-variable model.
+
+``` r
+mean.cv.errors = apply(cv.errors, 2, mean)
+mean.cv.errors
+```
+
+    ##        1        2        3        4        5        6        7        8 
+    ## 160093.5 140196.8 153117.0 151159.3 146841.3 138302.6 144346.2 130207.7 
+    ##        9       10       11       12       13       14       15       16 
+    ## 129459.6 125334.7 125153.8 128273.5 133461.0 133974.6 131825.7 131882.8 
+    ##       17       18       19 
+    ## 132750.9 133096.2 132804.7
+
+``` r
+par(mfrow = c(1,1))
+plot(mean.cv.errors, type = 'b')
+```
+
+![](SubsetSelection_files/figure-markdown_github/unnamed-chunk-22-1.png) We see that cross-validation selects an 11-variable model. We now perform best subset selection on the full data set in order to obtain the 11-variable model.
+
+``` r
+reg.best = regsubsets(Salary ~ .,data = Hitters, nvmax = 19)
+coef(reg.best, 11)
+```
+
+    ##  (Intercept)        AtBat         Hits        Walks       CAtBat 
+    ##  135.7512195   -2.1277482    6.9236994    5.6202755   -0.1389914 
+    ##        CRuns         CRBI       CWalks      LeagueN    DivisionW 
+    ##    1.4553310    0.7852528   -0.8228559   43.1116152 -111.1460252 
+    ##      PutOuts      Assists 
+    ##    0.2894087    0.2688277

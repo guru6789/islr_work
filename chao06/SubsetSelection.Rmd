@@ -106,4 +106,74 @@ coef(regfit.fwd, 7)
 coef(regfit.bwd, 7)
 ```
 
+##################################################################################################################
+
+choosing models using validation and cross-validation set approach.
+
+##################################################################################################################
+
+first divide dataset into trainig and testing
+```{r}
+set.seed(1)
+train = sample(c(TRUE, FALSE), nrow(Hitters), rep = TRUE)
+test = !train
+```
+
+then apply `regsubsets` using only training data.
+```{r}
+regfit.best = regsubsets(Salary ~ ., data = Hitters[train,], nvmax = 19)
+coef(regfit.best, 10)
+```
+
+We now compute the validation set error for the best model of each model size. We ﬁrst make a model matrix from the test data.
+```{r}
+test.mat = model.matrix(Salary ~., data = Hitters[test,])
+```
+Now we run a loop, and for each size i, we extract the coeﬃcients from `regfit.best` for the best model of that size, multiply them into the appropriate columns of the test model matrix to form the predictions, and compute the test MSE.
+```{r}
+predict.regsubsets = function(object, newData, id, ...){
+  form = as.formula(object$call[[2]])
+  mat = model.matrix(form, newData)
+  coefi = coef(object, id = id)
+  xvars = names(coefi)
+  mat[,xvars]%*%coefi
+}
+```
+
+```{r}
+regfit.best = regsubsets(Salary ~., data = Hitters, nvmax = 19)
+coef(regfit.best, 10)
+```
+
+Using full dataset provide diffrent coefficients for 10 variable model than using just training dataset.We now try to choose among the models of diﬀerent sizes using crossvalidation. First, we create a vector that allocates each observation to one of k = 10 folds, and we create a matrix in which we will store the results.
+```{r}
+k = 10
+set.seed(1)
+folds = sample(1:k, nrow(Hitters), replace = T)
+cv.errors = matrix(NA, k, 19, dimnames = list(NULL, paste(1:19)))
+```
+Now we write a for loop that performs cross-validation. In the jth fold, the elements of folds that equal j are in the test set, and the remainder are in the training set.
+```{r}
+for(j in 1:k){
+  best.fit = regsubsets(Salary ~ ., data = Hitters[folds != j,], nvmax = 19)
+  for(i in 1:19){
+    pred = predict(best.fit, Hitters[folds == j,], id = i)
+    cv.errors[j, i] = mean((Hitters$Salary[folds == j] - pred)^2)
+  }
+}
+```
+This has given us a 10×19 matrix, of which the (i,j)th element corresponds to the test MSE for the ith cross-validation fold for the best j-variable model.We use the `apply()` function to average over the columns of this matrix in order to obtain a vector for which the jth element is the crossvalidation error for the j-variable model.
+```{r}
+mean.cv.errors = apply(cv.errors, 2, mean)
+mean.cv.errors
+```
+```{r}
+par(mfrow = c(1,1))
+plot(mean.cv.errors, type = 'b')
+```
+We see that cross-validation selects an 11-variable model. We now perform best subset selection on the full data set in order to obtain the 11-variable model.
+```{r}
+reg.best = regsubsets(Salary ~ .,data = Hitters, nvmax = 19)
+coef(reg.best, 11)
+```
 
